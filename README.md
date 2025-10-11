@@ -60,9 +60,9 @@ npm install
 
 This tool supports three configuration methods with the following priority:
 
-**1. Command-line arguments** (highest priority)
-**2. Config file** (`.bragdoc.config.json`)
-**3. Environment variables** (`.env` file)
+1. Command-line arguments (highest priority)
+2. Config file (`.bragdoc.config.json`)
+3. Environment variables (`.env` file)
 
 ### Option 1: Command-Line Arguments
 
