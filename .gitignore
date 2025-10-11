@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Configuration (contains API keys)
+.bragdoc.config.json
+
+# Output files
+bragdoc.md
+bragdoc-verbose.md
+*.md
+!README.md
+!.bragdoc.config.example.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
