@@ -1,0 +1,20 @@
+{
+  "name": "linear-bragdoc-generator",
+  "version": "1.0.0",
+  "description": "Automatically generate weekly brag docs from your Linear issues using AI (Ollama or Claude)",
+  "type": "module",
+  "keywords": ["linear", "brag-doc", "weekly-digest", "ai", "ollama", "claude", "productivity"],
+  "scripts": {
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "@linear/sdk": "^60.0.0",
+    "commander": "^14.0.1",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
