@@ -49,7 +49,7 @@ This tool makes creating brag docs effortless by automatically pulling your work
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone git@github.com:jstanier/bragdoc.git
 cd bragdoc
 
 # Install dependencies
