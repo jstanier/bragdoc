@@ -1,0 +1,8 @@
+{
+  "linearApiKey": "lin_api_YOUR_KEY_HERE",
+  "claudeApiKey": "sk-ant-YOUR_KEY_HERE",
+  "aiProvider": "ollama",
+  "ollamaUrl": "http://localhost:11434",
+  "ollamaModel": "llama2",
+  "outputFile": "bragdoc.md"
+}

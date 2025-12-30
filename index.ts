@@ -1,9 +1,10 @@
 import { LinearClient } from '@linear/sdk';
-import { writeFileSync } from 'fs';
-import { loadConfig, displayConfig } from './config.js';
+import { writeFile } from 'fs/promises';
+import { loadConfig, displayConfig, BragDocConfig } from './config.js';
 import { AIProvider } from './providers/ai-provider.interface.js';
 import { OllamaProvider } from './providers/ollama-provider.js';
 import { ClaudeProvider } from './providers/claude-provider.js';
+import { withRetry } from './utils.js';
 
 interface IssueData {
   identifier: string;
@@ -26,24 +27,26 @@ interface IssueData {
   }>;
 }
 
-async function fetchIssuesWithDetails(linearClient: LinearClient): Promise<{ completed: IssueData[], inProgress: IssueData[] }> {
-  // Get date from 7 days ago
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+async function fetchIssuesWithDetails(
+  linearClient: LinearClient,
+  days: number
+): Promise<{ completed: IssueData[], inProgress: IssueData[] }> {
+  // Get date from N days ago
+  const lookbackDate = new Date();
+  lookbackDate.setDate(lookbackDate.getDate() - days);
 
   const me = await linearClient.viewer;
 
-  const issues = await linearClient.issues({
+  const issues = await withRetry(() => linearClient.issues({
     filter: {
       assignee: { id: { eq: me.id } },
-      updatedAt: { gte: oneWeekAgo },
+      updatedAt: { gte: lookbackDate },
       or: [
         { state: { name: { in: ['In Progress', 'In Review'] } } },
-        { completedAt: { gte: oneWeekAgo } }
+        { completedAt: { gte: lookbackDate } }
       ]
-    },
-    orderBy: 'updatedAt'
-  });
+    }
+  }));
 
   const completed: IssueData[] = [];
   const inProgress: IssueData[] = [];
@@ -69,10 +72,13 @@ async function fetchIssuesWithDetails(linearClient: LinearClient): Promise<{ com
       team: team?.name || 'Unknown',
       assignee: assignee?.name || null,
       labels: labels.nodes.map(l => l.name),
-      comments: comments.nodes.map(c => ({
-        author: c.user?.name || 'Unknown',
-        body: c.body,
-        createdAt: c.createdAt
+      comments: await Promise.all(comments.nodes.map(async c => {
+        const user = await c.user;
+        return {
+          author: user?.name || 'Unknown',
+          body: c.body,
+          createdAt: c.createdAt
+        };
       }))
     };
 
@@ -86,7 +92,7 @@ async function fetchIssuesWithDetails(linearClient: LinearClient): Promise<{ com
   return { completed, inProgress };
 }
 
-function generateVerboseMarkdown(completed: IssueData[], inProgress: IssueData[]): string {
+function generateVerboseMarkdown(completed: IssueData[], inProgress: IssueData[], days: number): string {
   const today = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -94,7 +100,8 @@ function generateVerboseMarkdown(completed: IssueData[], inProgress: IssueData[]
   });
 
   let markdown = `# Verbose Weekly Brag Doc - ${today}\n\n`;
-  markdown += `Generated: ${new Date().toISOString()}\n\n`;
+  markdown += `Generated: ${new Date().toISOString()}\n`;
+  markdown += `Period: Last ${days} days\n\n`;
   markdown += `---\n\n`;
 
   if (completed.length > 0) {
@@ -171,7 +178,7 @@ function generateVerboseMarkdown(completed: IssueData[], inProgress: IssueData[]
   }
 
   if (completed.length === 0 && inProgress.length === 0) {
-    markdown += '_No issues found for the past week._\n';
+    markdown += `_No issues found for the past ${days} days._\n`;
   }
 
   return markdown;
@@ -188,6 +195,29 @@ async function generateBragDoc() {
     // Initialize Linear client
     const linearClient = new LinearClient({ apiKey: config.linearApiKey });
 
+    console.log(`📥 Fetching issues from Linear (last ${config.days} days)...`);
+    const { completed, inProgress } = await fetchIssuesWithDetails(linearClient, config.days);
+
+    console.log(`✅ Found ${completed.length} completed and ${inProgress.length} in progress issues`);
+
+    console.log('📝 Generating verbose markdown...');
+    const verboseMarkdown = generateVerboseMarkdown(completed, inProgress, config.days);
+
+    // Save verbose version
+    await writeFile(config.verboseOutputFile, verboseMarkdown);
+    console.log(`💾 Saved verbose brag doc to ${config.verboseOutputFile}`);
+
+    // If dry run, stop here
+    if (config.dryRun) {
+      console.log('\n' + '='.repeat(80));
+      console.log('📊 DRY RUN - VERBOSE OUTPUT');
+      console.log('='.repeat(80) + '\n');
+      console.log(verboseMarkdown);
+      console.log('\n' + '='.repeat(80));
+      console.log('✨ Dry run complete. No AI summarization performed.');
+      return;
+    }
+
     // Initialize AI provider based on configuration
     let aiProvider: AIProvider;
     if (config.aiProvider === 'claude') {
@@ -196,23 +226,11 @@ async function generateBragDoc() {
       aiProvider = new OllamaProvider(config.ollamaUrl, config.ollamaModel);
     }
 
-    console.log('📥 Fetching issues from Linear...');
-    const { completed, inProgress } = await fetchIssuesWithDetails(linearClient);
-
-    console.log(`✅ Found ${completed.length} completed and ${inProgress.length} in progress issues`);
-
-    console.log('📝 Generating verbose markdown...');
-    const verboseMarkdown = generateVerboseMarkdown(completed, inProgress);
-
-    // Save verbose version
-    writeFileSync(config.verboseOutputFile, verboseMarkdown);
-    console.log(`💾 Saved verbose brag doc to ${config.verboseOutputFile}`);
-
     console.log(`🤖 Summarizing with ${aiProvider.name}...`);
     const summary = await aiProvider.summarize(verboseMarkdown);
 
     // Save summary
-    writeFileSync(config.outputFile, summary);
+    await writeFile(config.outputFile, summary);
     console.log(`💾 Saved brag doc to ${config.outputFile}`);
 
     console.log('\n' + '='.repeat(80));

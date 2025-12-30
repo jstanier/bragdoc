@@ -10,6 +10,8 @@ export interface BragDocConfig {
   ollamaModel: string;
   outputFile: string;
   verboseOutputFile: string;
+  days: number;
+  dryRun: boolean;
 }
 
 interface ConfigFile {
@@ -19,6 +21,7 @@ interface ConfigFile {
   ollamaUrl?: string;
   ollamaModel?: string;
   outputFile?: string;
+  days?: number;
 }
 
 /**
@@ -31,12 +34,15 @@ interface ConfigFile {
 export function loadConfig(): BragDocConfig {
   // Parse command-line arguments
   program
+    .version('1.0.0')
     .option('--linear-key <key>', 'Linear API key')
     .option('--claude-key <key>', 'Claude API key (optional)')
     .option('--ai-provider <provider>', 'AI provider to use: ollama or claude')
     .option('--ollama-url <url>', 'Ollama API URL')
     .option('--ollama-model <model>', 'Ollama model name')
     .option('--output <file>', 'Output file path')
+    .option('--days <number>', 'Number of days to look back (default: 7)', parseInt)
+    .option('--dry-run', 'Fetch and display issues without calling AI')
     .parse(process.argv);
 
   const options = program.opts();
@@ -75,7 +81,7 @@ export function loadConfig(): BragDocConfig {
     options.ollamaModel ||
     fileConfig.ollamaModel ||
     process.env.OLLAMA_MODEL ||
-    'gpt-oss:20b';
+    'llama2';
 
   const outputFile =
     options.output ||
@@ -83,6 +89,13 @@ export function loadConfig(): BragDocConfig {
     'bragdoc.md';
 
   const verboseOutputFile = outputFile.replace('.md', '-verbose.md');
+
+  const days =
+    options.days ||
+    fileConfig.days ||
+    7;
+
+  const dryRun = options.dryRun || false;
 
   // Determine AI provider
   let aiProvider: 'ollama' | 'claude';
@@ -108,7 +121,7 @@ export function loadConfig(): BragDocConfig {
     process.exit(1);
   }
 
-  if (aiProvider === 'claude' && !claudeApiKey) {
+  if (aiProvider === 'claude' && !claudeApiKey && !dryRun) {
     console.error('❌ Error: Claude API key is required when using Claude provider');
     console.error('\nYou can provide it in one of three ways:');
     console.error('  1. Command line: --claude-key YOUR_KEY');
@@ -125,7 +138,9 @@ export function loadConfig(): BragDocConfig {
     ollamaUrl,
     ollamaModel,
     outputFile,
-    verboseOutputFile
+    verboseOutputFile,
+    days,
+    dryRun
   };
 }
 
@@ -139,6 +154,11 @@ export function displayConfig(config: BragDocConfig): void {
     console.log(`   Ollama URL: ${config.ollamaUrl}`);
     console.log(`   Ollama Model: ${config.ollamaModel}`);
   }
+  console.log(`   Days to look back: ${config.days}`);
   console.log(`   Output: ${config.outputFile}`);
-  console.log(`   Verbose Output: ${config.verboseOutputFile}\n`);
+  console.log(`   Verbose Output: ${config.verboseOutputFile}`);
+  if (config.dryRun) {
+    console.log(`   Mode: DRY RUN (no AI summarization)`);
+  }
+  console.log('');
 }

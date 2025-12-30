@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AIProvider } from './ai-provider.interface.js';
+import { withRetry } from '../utils.js';
 
 /**
  * AI provider implementation using Anthropic's Claude API
@@ -31,23 +32,25 @@ ${verboseMarkdown}
 
 Please generate a concise, professional weekly brag document in markdown format.`;
 
-    const message = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+    return withRetry(async () => {
+      const message = await this.client.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      // Extract text content from the response
+      const textContent = message.content.find(block => block.type === 'text');
+      if (textContent && textContent.type === 'text') {
+        return textContent.text;
+      }
+
+      throw new Error('Failed to generate summary: No text content in response');
     });
-
-    // Extract text content from the response
-    const textContent = message.content.find(block => block.type === 'text');
-    if (textContent && textContent.type === 'text') {
-      return textContent.text;
-    }
-
-    throw new Error('Failed to generate summary: No text content in response');
   }
 }

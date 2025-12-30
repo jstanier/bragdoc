@@ -13,6 +13,7 @@ bragdoc.md
 bragdoc-verbose.md
 *.md
 !README.md
+!TODO.md
 !.bragdoc.config.example.json
 
 # OS files

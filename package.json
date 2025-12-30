@@ -2,8 +2,29 @@
   "name": "linear-bragdoc-generator",
   "version": "1.0.0",
   "description": "Automatically generate weekly brag docs from your Linear issues using AI (Ollama or Claude)",
+  "author": "James Stanier",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jstanier/bragdoc.git"
+  },
+  "homepage": "https://github.com/jstanier/bragdoc#readme",
+  "bugs": {
+    "url": "https://github.com/jstanier/bragdoc/issues"
+  },
   "type": "module",
-  "keywords": ["linear", "brag-doc", "weekly-digest", "ai", "ollama", "claude", "productivity"],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "linear",
+    "brag-doc",
+    "weekly-digest",
+    "ai",
+    "ollama",
+    "claude",
+    "productivity"
+  ],
   "scripts": {
     "start": "tsx index.ts"
   },
@@ -14,6 +35,7 @@
     "dotenv": "^16.4.0"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }
