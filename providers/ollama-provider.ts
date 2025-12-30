@@ -1,4 +1,5 @@
 import { AIProvider } from './ai-provider.interface.js';
+import { withRetry } from '../utils.js';
 
 /**
  * AI provider implementation using local Ollama instance
@@ -28,23 +29,25 @@ ${verboseMarkdown}
 
 Please generate a concise, professional weekly brag document in markdown format.`;
 
-    const response = await fetch(`${this.url}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        prompt: prompt,
-        stream: false
-      })
+    return withRetry(async () => {
+      const response = await fetch(`${this.url}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          prompt: prompt,
+          stream: false
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.response || 'Failed to generate summary';
     });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.response || 'Failed to generate summary';
   }
 }

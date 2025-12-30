@@ -16,7 +16,7 @@ This tool makes creating brag docs effortless by automatically pulling your work
 
 ```
 ┌─────────────┐
-│   Linear    │  Fetches issues from last 7 days
+│   Linear    │  Fetches issues (configurable lookback)
 │     API     │  (completed + in progress)
 └──────┬──────┘
        │
@@ -45,6 +45,10 @@ This tool makes creating brag docs effortless by automatically pulling your work
        └──────────────┘
 ```
 
+## Requirements
+
+- Node.js 18.0.0 or higher
+
 ## Installation
 
 ```bash
@@ -71,12 +75,15 @@ npm start -- --linear-key lin_api_xxx --claude-key sk-ant-xxx
 ```
 
 Available flags:
+- `--version` - Show version number
 - `--linear-key <key>` - Your Linear API key (required)
 - `--claude-key <key>` - Your Claude API key (optional)
 - `--ai-provider <provider>` - AI provider: `ollama` or `claude`
 - `--ollama-url <url>` - Ollama API URL (default: `http://localhost:11434`)
-- `--ollama-model <model>` - Ollama model name (default: `gpt-oss:20b`)
+- `--ollama-model <model>` - Ollama model name (default: `llama2`)
 - `--output <file>` - Output file path (default: `bragdoc.md`)
+- `--days <number>` - Number of days to look back (default: `7`)
+- `--dry-run` - Fetch and display issues without calling AI (useful for testing)
 
 ### Option 2: Config File (Recommended for local use)
 
@@ -92,8 +99,9 @@ Available flags:
      "claudeApiKey": "sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
      "aiProvider": "ollama",
      "ollamaUrl": "http://localhost:11434",
-     "ollamaModel": "gpt-oss:20b",
-     "outputFile": "bragdoc.md"
+     "ollamaModel": "llama2",
+     "outputFile": "bragdoc.md",
+     "days": 7
    }
    ```
 
@@ -116,7 +124,7 @@ Available flags:
    LINEAR_API_KEY=your_linear_api_key_here
    CLAUDE_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    OLLAMA_URL=http://localhost:11434
-   OLLAMA_MODEL=gpt-oss:20b
+   OLLAMA_MODEL=llama2
    ```
 
 3. Run the tool:
@@ -149,8 +157,8 @@ If you want to use Ollama instead of Claude:
 1. [Install Ollama](https://ollama.ai/)
 2. Pull a model:
    ```bash
-   ollama pull gpt-oss:20b
-   # or try other models like llama2, mistral, etc.
+   ollama pull llama2
+   # or try other models like mistral, codellama, etc.
    ```
 3. Make sure Ollama is running:
    ```bash
@@ -177,7 +185,22 @@ npm start -- --linear-key lin_api_xxx --output ./reports/weekly.md
 
 ### Use a different Ollama model
 ```bash
-npm start -- --ollama-model llama2
+npm start -- --ollama-model mistral
+```
+
+### Look back 14 days instead of 7
+```bash
+npm start -- --days 14
+```
+
+### Dry run (fetch issues without AI summarization)
+```bash
+npm start -- --dry-run
+```
+
+### Check version
+```bash
+npm start -- --version
 ```
 
 ## Output Files
@@ -193,7 +216,7 @@ Both files are git-ignored by default.
 
 The tool fetches Linear issues that:
 - Are assigned to you
-- Were updated in the last 7 days
+- Were updated in the configured time period (default: last 7 days)
 - Are either:
   - Completed (Done/Completed status)
   - In Progress (In Progress/In Review status)
@@ -223,7 +246,13 @@ ollama serve
 ```
 
 ### "No issues found for the past week"
-This is normal if you haven't updated any Linear issues recently. The tool looks for issues updated in the last 7 days.
+This is normal if you haven't updated any Linear issues recently. Try increasing the lookback period:
+```bash
+npm start -- --days 14
+```
+
+### API call failures
+The tool automatically retries failed API calls up to 3 times with exponential backoff. If you're still experiencing issues, check your network connection and API key validity.
 
 ## Project Structure
 
@@ -231,6 +260,7 @@ This is normal if you haven't updated any Linear issues recently. The tool looks
 bragdoc/
 ├── index.ts                          # Main entry point
 ├── config.ts                         # Configuration management
+├── utils.ts                          # Utility functions (retry logic, etc.)
 ├── providers/
 │   ├── ai-provider.interface.ts     # AI provider interface
 │   ├── ollama-provider.ts           # Ollama implementation
@@ -239,6 +269,7 @@ bragdoc/
 ├── .env.example                      # Example environment variables
 ├── package.json
 ├── tsconfig.json
+├── LICENSE
 └── README.md
 ```
 
