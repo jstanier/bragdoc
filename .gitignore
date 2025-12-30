@@ -3,6 +3,7 @@ node_modules/
 
 # Environment variables
 .env
+npm
 
 # Configuration (contains API keys)
 .bragdoc.config.json
